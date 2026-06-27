@@ -1,0 +1,29 @@
+# Cache e logs
+.cache/
+*.log
+*.tmp
+
+# Plugins (instalados em runtime)
+plugins/
+
+# Fontes baixadas (usar do repo)
+fonts/*.zip
+fonts/extracted/
+
+# Backups gerados pelo restore
+*.bak
+
+# Ficheiros temporários do installer
+/tmp/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Sistema
+Thumbs.db
