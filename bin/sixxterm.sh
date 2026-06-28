@@ -11,6 +11,8 @@ RED="\033[1;31m"
 GRAY="\033[0;90m"
 RESET="\033[0m"
 
+source "$BASE/lib/progress_bar.sh" 2>/dev/null
+
 cmd="${1:-help}"
 
 case "$cmd" in
@@ -27,6 +29,9 @@ case "$cmd" in
         echo -e "  ${GRAY}│${RESET} ${GREEN}restore${RESET}          ${GRAY}│${RESET} Restaurar Termux ao padrão             ${GRAY}│${RESET}"
         echo -e "  ${GRAY}│${RESET} ${GREEN}reload${RESET}           ${GRAY}│${RESET} Recarregar configurações do Zsh        ${GRAY}│${RESET}"
         echo -e "  ${GRAY}│${RESET} ${GREEN}info${RESET}             ${GRAY}│${RESET} Informações do sistema                 ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET} ${GREEN}backup${RESET}           ${GRAY}│${RESET} Fazer backup das configs no /sdcard    ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET} ${GREEN}doctor${RESET}           ${GRAY}│${RESET} Verificar dependências e plugins       ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET} ${GREEN}status${RESET}           ${GRAY}│${RESET} Ver o que está instalado vs falta      ${GRAY}│${RESET}"
         echo -e "  ${GRAY}├──────────────────┼────────────────────────────────────────┤${RESET}"
         echo -e "  ${GRAY}│${RESET} ${CYAN}Aliases Gerais${RESET}   ${GRAY}│${RESET}                                        ${GRAY}│${RESET}"
         echo -e "  ${GRAY}│${RESET} ${GREEN}c${RESET}                ${GRAY}│${RESET} clear                                  ${GRAY}│${RESET}"
@@ -136,10 +141,174 @@ case "$cmd" in
         echo -e "  ${GRAY}●${RESET} Armazen.:  ${WHITE}$(df -h /data | awk 'NR==2{print $3"/"$2}')${RESET}\n"
         ;;
 
+# ── Backup ──────────────────────────────────────────────────────
+    backup)
+        BACKUP_DIR="/sdcard/SixxTerm-backups"
+        TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+        BACKUP_FILE="$BACKUP_DIR/sixxterm_$TIMESTAMP.zip"
+
+        if [ ! -d "/sdcard" ]; then
+            echo -e "\n  ${RED}[✗] Sem acesso ao /sdcard.${RESET}"
+            echo -e "  ${YELLOW}[!] Execute: termux-setup-storage${RESET}\n"
+            exit 1
+        fi
+
+        if ! command -v zip >/dev/null 2>&1; then
+            echo -e "\n  ${YELLOW}[!] Instalando zip...${RESET}"
+            pkg install -y zip >/dev/null 2>&1
+        fi
+
+        mkdir -p "$BACKUP_DIR"
+        echo -e "\n  ${CYAN}[*] Iniciando backup...${RESET}"
+
+        zip -r "$BACKUP_FILE" \
+            "$BASE" \
+            "$HOME/.zshrc" \
+            "$HOME/.termux" \
+            "$HOME/.profile" \
+            >/dev/null 2>&1 &
+        ZIP_PID=$!
+
+        progress_bar "Criando backup" 5 &
+        BAR_PID=$!
+
+        wait $ZIP_PID
+        ZIP_RC=$?
+        kill $BAR_PID 2>/dev/null
+        wait $BAR_PID 2>/dev/null
+        printf '\033[?25h'  # garante cursor visível
+
+        if [ $ZIP_RC -eq 0 ]; then
+            SIZE=$(du -sh "$BACKUP_FILE" | awk '{print $1}')
+            echo -e "  ${GREEN}[✓] Backup criado com sucesso!${RESET}"
+            echo -e "  ${GRAY}●${RESET} Ficheiro:  ${WHITE}$BACKUP_FILE${RESET}"
+            echo -e "  ${GRAY}●${RESET} Tamanho:   ${WHITE}$SIZE${RESET}\n"
+        else
+            echo -e "  ${RED}[✗] Falha ao criar backup.${RESET}\n"
+            exit 1
+        fi
+        ;;
+
+# ── Doctor ──────────────────────────────────────────────────────
+    doctor)
+        echo -e "\n  ${CYAN}SixxTerm — Diagnóstico${RESET}\n"
+
+        _check() {
+            local label="$1"
+            local cmd="$2"
+            if command -v "$cmd" >/dev/null 2>&1; then
+                echo -e "  ${GREEN}[✓]${RESET} ${WHITE}$label${RESET}"
+            else
+                echo -e "  ${RED}[✗]${RESET} ${WHITE}$label${RESET}  ${GRAY}(não encontrado: $cmd)${RESET}"
+            fi
+        }
+
+        _check_file() {
+            local label="$1"
+            local path="$2"
+            if [ -e "$path" ]; then
+                echo -e "  ${GREEN}[✓]${RESET} ${WHITE}$label${RESET}"
+            else
+                echo -e "  ${RED}[✗]${RESET} ${WHITE}$label${RESET}  ${GRAY}(não encontrado: $path)${RESET}"
+            fi
+        }
+
+        echo -e "  ${GRAY}── Pacotes ───────────────────────────────${RESET}"
+        _check "bash"          bash
+        _check "zsh"           zsh
+        _check "git"           git
+        _check "curl"          curl
+        _check "zip"           zip
+        _check "jq"            jq
+        _check "fzf"           fzf
+        _check "go"            go
+        _check "logo-ls"       logo-ls
+        _check "figlet"        figlet
+        _check "neofetch"      neofetch
+
+        echo -e "\n  ${GRAY}── Plugins Zsh ───────────────────────────${RESET}"
+        PLUGINS_DIR="$BASE/plugins"
+        _check_file "zsh-autosuggestions"     "$PLUGINS_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
+        _check_file "zsh-syntax-highlighting" "$PLUGINS_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+        _check_file "zsh-autocomplete"        "$PLUGINS_DIR/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+        _check_file "bgnotify"                "$PLUGINS_DIR/bgnotify/bgnotify.plugin.zsh"
+        _check_file "zsh-fzf-history-search"  "$PLUGINS_DIR/zsh-fzf-history-search/zsh-fzf-history-search.plugin.zsh"
+
+        echo -e "\n  ${GRAY}── Ficheiros ─────────────────────────────${RESET}"
+        _check_file "banner.sh"         "$BASE/themes/banner.sh"
+        _check_file "progress_bar.sh"   "$BASE/lib/progress_bar.sh"
+        _check_file "json_format.sh"    "$BASE/lib/json_format.sh"
+        _check_file "updater.sh"        "$BASE/lib/updater.sh"
+        _check_file ".zshrc"            "$HOME/.zshrc"
+        _check_file "font.ttf"          "$HOME/.termux/font.ttf"
+        _check_file "colors.properties" "$HOME/.termux/colors.properties"
+        echo -e ""
+        ;;
+
+# ── Status ──────────────────────────────────────────────────────
+    status)
+        echo -e "\n  ${CYAN}SixxTerm — Status da Instalação${RESET}\n"
+
+        ok=0
+        fail=0
+
+        _status() {
+            local label="$1"
+            local check="$2"
+            if eval "$check" >/dev/null 2>&1; then
+                echo -e "  ${GREEN}●${RESET} ${WHITE}$label${RESET}"
+                (( ok++ ))
+            else
+                echo -e "  ${RED}○${RESET} ${GRAY}$label${RESET}"
+                (( fail++ ))
+            fi
+        }
+
+        echo -e "  ${GRAY}── Componentes ───────────────────────────${RESET}"
+        _status "Zsh instalado"              "command -v zsh"
+        _status "logo-ls instalado"          "command -v logo-ls"
+        _status "fzf instalado"              "command -v fzf"
+        _status "jq instalado"               "command -v jq"
+        _status "go instalado"               "command -v go"
+        _status "Plugins Zsh presentes"      "[ -d '$BASE/plugins' ] && ls '$BASE/plugins' | grep -q zsh"
+        _status "Banner configurado"         "[ -x '$BASE/themes/banner.sh' ]"
+        _status "Fonte instalada"            "[ -f '$HOME/.termux/font.ttf' ]"
+        _status "Cores configuradas"         "[ -f '$HOME/.termux/colors.properties' ]"
+        _status ".zshrc presente"            "[ -f '$HOME/.zshrc' ]"
+        _status "Script de restore presente" "[ -f '$HOME/restore.sh' ]"
+
+        echo -e "\n  ${GRAY}─────────────────────────────────────────${RESET}"
+        echo -e "  ${GREEN}$ok instalado(s)${RESET}  ${RED}$fail em falta${RESET}\n"
+        ;;
+
+        # ── About ───────────────────────────────────────────────────────
+    about|autor|dono|sixx|ytsixx)
+        echo -e "\n  ${CYAN}SixxTerm — Sobre o Projeto${RESET}\n"
+        echo -e "  ${GRAY}╭─────────────────────────────────────────╮${RESET}"
+        echo -e "  ${GRAY}│${RESET}                                         ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}   ${CYAN}⬡${RESET}  ${WHITE}Sixx${RESET}  ${GRAY}·${RESET}  ${GREEN}@ytsixx${RESET}                   ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}                                         ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}   ${GRAY}Dev${RESET}     ${WHITE}Node.js · Bash · Termux${RESET}       ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}   ${GRAY}From${RESET}    ${WHITE}Mocambique${RESET}                    ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}   ${GRAY}GitHub${RESET}  ${WHITE}github.com/Ytsixx${RESET}             ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}                                         ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}   ${GRAY}WA${RESET}      ${WHITE}+258 86 081 7689${RESET}              ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}   ${GRAY}IG${RESET}      ${WHITE}@ytsixx__${RESET}                     ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}   ${GRAY}FB${RESET}      ${WHITE}sixx hxrx${RESET}                     ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}                                         ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}   ${GRAY}Projeto${RESET} ${WHITE}SixxTerm v$(cat "$BASE/version.txt" 2>/dev/null || echo "1.0.0")${RESET}               ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}   ${GRAY}Licenca${RESET} ${WHITE}MIT${RESET}                           ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}│${RESET}                                         ${GRAY}│${RESET}"
+        echo -e "  ${GRAY}╰─────────────────────────────────────────╯${RESET}"
+        echo -e "\n  ${GRAY}Feito com amor em  City Lichinga${RESET}\n"
+        ;;
+        
+
 # ── Comando desconhecido ─────────────────────────────────────────
     *)
         echo -e "\n  ${RED}[✗] Comando desconhecido: $cmd${RESET}"
         echo -e "  ${YELLOW}[!] Use: sixxterm help${RESET}\n"
         exit 1
         ;;
+        
 esac

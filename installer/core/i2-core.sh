@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 # i2-core.sh — Instala pacotes essenciais do Termux
 
@@ -20,13 +21,13 @@ else
 fi
 
 # ── Instalar pacotes essenciais ─────────────────────────────────
-PACOTES=(bash coreutils curl git zsh termux-tools unzip jp)
+PACOTES=(bash coreutils curl git zsh termux-tools unzip jq zip fzf neofetch)
 FALTANDO=()
 
 info "Verificando pacotes essenciais..."
 
 for pacote in "${PACOTES[@]}"; do
-    if ! pkg list-installed 2>/dev/null | grep -q "^$pacote/"; then
+    if ! dpkg -s "$pacote" &>/dev/null; then
         FALTANDO+=("$pacote")
     fi
 done
@@ -35,9 +36,9 @@ if (( ${#FALTANDO[@]} == 0 )); then
     success "Todos os pacotes já estão instalados!"
 else
     info "Pacotes em falta: ${FALTANDO[*]}"
-    progress_bar "Instalando pacotes essenciais" 3
+    info "Instalando pacotes..."
 
-    if pkg install -y --no-upgrade "${FALTANDO[@]}" >/dev/null 2>&1; then
+    if pkg install -y --no-upgrade "${FALTANDO[@]}"; then
         success "Pacotes instalados com sucesso!"
     else
         erro "Falha ao instalar pacotes. Tente manualmente: pkg install ${FALTANDO[*]}"

@@ -31,15 +31,19 @@ fi
 info "Verificando logo-ls..."
 if [ -d "$LOGOLS_DIR" ]; then
     progress_bar "Atualizando logo-ls" 2
-    git -C "$LOGOLS_DIR" pull --quiet >/dev/null 2>&1 && \
-        success "logo-ls atualizado!" || \
+    if git -C "$LOGOLS_DIR" pull --quiet >/dev/null 2>&1; then
+        success "logo-ls atualizado!"
+    else
         warn "Falha ao atualizar logo-ls."
+    fi
 else
     progress_bar "Clonando logo-ls" 3
-    git clone --quiet https://github.com/Yash-Handa/logo-ls.git "$LOGOLS_DIR" >/dev/null 2>&1 && \
-        success "logo-ls clonado com sucesso!" || \
+    if git clone --quiet https://github.com/Yash-Handa/logo-ls.git "$LOGOLS_DIR" >/dev/null 2>&1; then
+        success "logo-ls clonado com sucesso!"
+    else
         erro "Falha ao clonar logo-ls."
         exit 1
+    fi
 fi
 
 # ── Compilar logo-ls ────────────────────────────────────────────
@@ -67,7 +71,7 @@ else
 fi
 
 # ── Criar estrutura de pastas ───────────────────────────────────
-progress_bar "Criando estrutura de pastas" 1
+progress_bar "Criando pastas" 1
 mkdir -p "$PLUGINS_DIR" "$TERMUX_DIR"
 
 success "Utilitários extra instalados com sucesso!"

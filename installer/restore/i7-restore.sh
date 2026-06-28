@@ -12,7 +12,7 @@ warn()    { printf "\e[1;33m[!]\e[0m %s\n" "$1"; }
 success() { printf "\e[1;32m[✓]\e[0m %s\n" "$1"; }
 erro()    { printf "\e[1;31m[✗]\e[0m %s\n" "$1"; }
 
-progress_bar "Preparando módulo de restauração" 2
+progress_bar "Preparando módulo" 2
 
 cat > "$RESTORE_SH" <<'RESTORE_EOF'
 #!/usr/bin/env bash

@@ -50,6 +50,7 @@ if [ ! -z "\${ZSH_VERSION-}" ]; then
     alias pacupd='pkg update'
     alias neo='neofetch'
     alias reload='source ~/.zshrc'
+    
 
     # ── Aliases ficheiros ────────────────────────────────────────
     if command -v logo-ls >/dev/null 2>&1; then
@@ -129,6 +130,12 @@ if [ ! -z "\${ZSH_VERSION-}" ]; then
     alias plg='pnpm list -g'
     alias pc='pnpm create'
     alias px='pnpm dlx'
+
+
+
+    alias six='sixxterm about'
+alias ytsixx='sixxterm about'
+alias sixx='sixxterm about'
 
     # ── Aliases npm ──────────────────────────────────────────────
     alias ni='npm install'
@@ -216,7 +223,7 @@ EOF
 success "Zsh configurado!"
 
 # ── Definir Zsh como shell padrão ───────────────────────────────
-progress_bar "Definindo Zsh como shell padrão" 1
+progress_bar "Zsh como shell padrão" 1
 ZSH_PATH=$(command -v zsh || true)
 
 if [ -n "$ZSH_PATH" ]; then

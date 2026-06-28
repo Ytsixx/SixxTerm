@@ -13,15 +13,20 @@ progress_bar() {
 
     local term_width
     term_width=$(tput cols 2>/dev/null || echo 80)
-    local width=$(( term_width / 3 ))
-    (( width < 10 )) && width=10
+
+    local reservado=$(( 4 + ${#tarefa} + 26 ))
+    local width=$(( term_width - reservado ))
+    (( width < 6 )) && width=6
+    (( width > 30 )) && width=30
 
     local delay
     delay=$(awk "BEGIN { printf \"%.4f\", $duracao / 100 }")
 
-    local inicio=$SECONDS
+    # Tempo de início em milissegundos
+    local inicio_ms
+    inicio_ms=$(date +%s%3N)
+    local duracao_ms=$(( duracao * 1000 ))
 
-    # Esconde cursor
     printf '\033[?25l'
 
     local i=0
@@ -33,19 +38,23 @@ progress_bar() {
         (( step > 0 ))     && bar=$(printf '●%.0s' $(seq 1 $step))
         (( restante > 0 )) && vazio=$(printf '○%.0s' $(seq 1 $restante))
 
-        local estimado=$(( duracao - (SECONDS - inicio) ))
-        (( estimado < 0 )) && estimado=0
+        # Tempo decorrido e estimado em ms → converte pra segundos com 1 casa
+        local agora_ms
+        agora_ms=$(date +%s%3N)
+        local decorrido_ms=$(( agora_ms - inicio_ms ))
+        local restante_ms=$(( duracao_ms - decorrido_ms ))
+        (( restante_ms < 0 )) && restante_ms=0
+        local estimado
+        estimado=$(awk "BEGIN { printf \"%.1f\", $restante_ms / 1000 }")
 
         local spin="${spinners[$spin_idx]}"
         spin_idx=$(( (spin_idx + 1) % ${#spinners[@]} ))
 
         if (( i == 100 )); then
-            # Linha final — um único printf, sem ~Xs e sem spinner
             printf "\r  ${VERDE}✔ %s  %s%s  [ 100%% ]${RESET}\n" \
                 "$tarefa" "$bar" "$vazio"
         else
-            # Tudo num único printf — evita scroll/duplicação
-            printf "\r  ${CIANO}◆${RESET} ${BRANCO}%s${RESET}  %s%s  ${CINZA}[ %3d%% ]  ~%ds  %s${RESET}" \
+            printf "\r  ${CIANO}◆${RESET} ${BRANCO}%s${RESET}  %s%s  ${CINZA}[ %3d%% ]  ~%ss  %s${RESET}" \
                 "$tarefa" "$bar" "$vazio" "$i" "$estimado" "$spin"
         fi
 
@@ -53,6 +62,5 @@ progress_bar() {
         (( i++ ))
     done
 
-    # Mostra cursor novamente
     printf '\033[?25h'
 }

@@ -4,7 +4,7 @@
 BASE="$HOME/SixxTerm"
 PLUGINS_DIR="$BASE/plugins"
 TERMUX_DIR="$HOME/.termux"
-LOG_DIR="$HOME/.cache/SixxTerm"
+LOG_DIR="$HOME/.cache/SixxTem"
 THEMES_DIR="$BASE/themes"
 
 source "$BASE/lib/progress_bar.sh"
@@ -17,7 +17,7 @@ erro()    { printf "\e[1;31m[✗]\e[0m %s\n" "$1"; }
 mkdir -p "$TERMUX_DIR" "$LOG_DIR" "$THEMES_DIR"
 
 # ── Cores estilo macOS ──────────────────────────────────────────
-progress_bar "Aplicando paleta de cores (estilo macOS)" 1
+progress_bar "Aplicando cores" 1
 cat > "$TERMUX_DIR/colors.properties" <<'EOF'
 color0=#1e1e1e
 color1=#ff5f56
@@ -42,7 +42,7 @@ EOF
 success "Paleta de cores aplicada!"
 
 # ── Propriedades do Termux ──────────────────────────────────────
-progress_bar "Aplicando configurações do terminal" 1
+progress_bar "configurações do terminal" 1
 cat > "$TERMUX_DIR/termux.properties" <<'EOF'
 allow-external-apps = true
 terminal-cursor-blink-rate=600
@@ -51,7 +51,7 @@ EOF
 success "Configurações do terminal aplicadas!"
 
 # ── Fonte SF Mono ───────────────────────────────────────────────
-progress_bar "Instalando fonte SF Mono" 2
+progress_bar "Instad fonte SF Mono" 2
 FONT_URL="https://raw.githubusercontent.com/Ytsixx/Projeto-Q/main/fonts/SFMonoRegular.otf"
 
 if curl -L --silent --show-error --fail -o "$TERMUX_DIR/font.ttf" "$FONT_URL"; then
@@ -68,40 +68,45 @@ cat > "$BANNER_SH" <<'EOF'
 #!/usr/bin/env bash
 # banner.sh — banner minimalista estilo macOS
 
-red="\033[1;31m"
-yellow="\033[1;33m"
-green="\033[1;32m"
-gray="\033[1;90m"
-blue="\033[1;34m"
-cyan="\033[1;36m"
-white="\033[1;37m"
-reset="\033[0m"
+red=$'\033[1;31m'
+yellow=$'\033[1;33m'
+green=$'\033[1;32m'
+gray=$'\033[1;90m'
+blue=$'\033[1;34m'
+cyan=$'\033[1;36m'
+white=$'\033[1;37m'
+reset=$'\033[0m'
 
 # ── Dados do sistema ─────────────────────────────────────────────
 os="Android $(getprop ro.build.version.release 2>/dev/null)"
 ram_total=$(free -m 2>/dev/null | awk '/Mem/{print $2}')
 ram_used=$(free -m 2>/dev/null | awk '/Mem/{print $3}')
-disk_used=$(df -h /data 2>/dev/null | awk 'NR==2{print $3}')
-disk_total=$(df -h /data 2>/dev/null | awk 'NR==2{print $2}')
-local_ip=$(ip route get 1 2>/dev/null | awk '{print $7}' | head -1)
+disk_used_kb=$(df -k /data 2>/dev/null | awk 'NR==2{print $3}')
+disk_total_kb=$(df -k /data 2>/dev/null | awk 'NR==2{print $2}')
+disk_used_h=$(df -h /data 2>/dev/null | awk 'NR==2{print $3}')
+disk_total_h=$(df -h /data 2>/dev/null | awk 'NR==2{print $2}')
+local_ip=$(ifconfig 2>/dev/null | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | head -1)
 short_path=$(echo "$PWD" | sed "s|$HOME|~|")
 
-# ── Barra de progresso com gradiente ────────────────────────────
+# ── Barra de progresso ───────────────────────────────────────────
 _bar() {
     local used=$1
     local total=$2
     local width=12
+
+    (( total <= 0 )) && { printf '░%.0s' $(seq 1 $width); return; }
+
+    local pct=$(( used * 100 / total ))
     local filled=$(( used * width / total ))
     local empty=$(( width - filled ))
-    local pct=$(( used * 100 / total ))
 
     local cor
     if (( pct < 50 )); then
-        cor="\033[1;32m"
+        cor=$'\033[1;32m'
     elif (( pct < 80 )); then
-        cor="\033[1;33m"
+        cor=$'\033[1;33m'
     else
-        cor="\033[1;31m"
+        cor=$'\033[1;31m'
     fi
 
     local bar="" empty_bar=""
@@ -117,7 +122,7 @@ echo -e "  ${red}●${reset} ${yellow}●${reset} ${green}●${reset}  ${gray}�
 echo -e "  ${gray}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${reset}"
 echo -e "  ${cyan}▸${reset} ${gray}PATH${reset}   ${white}${short_path}${reset}"
 printf "  ${cyan}▸${reset} ${gray}RAM ${reset}   $(_bar $ram_used $ram_total)  ${white}${ram_used}MB / ${ram_total}MB${reset}\n"
-printf "  ${cyan}▸${reset} ${gray}DISK${reset}   $(_bar $(echo $disk_used | tr -d 'G') $(echo $disk_total | tr -d 'G'))  ${white}${disk_used} / ${disk_total}${reset}\n"
+printf "  ${cyan}▸${reset} ${gray}DISK${reset}   $(_bar $disk_used_kb $disk_total_kb)  ${white}${disk_used_h} / ${disk_total_h}${reset}\n"
 echo -e "  ${cyan}▸${reset} ${gray}IP  ${reset}   ${white}${local_ip:-N/A}${reset}"
 echo -e "\n"
 EOF
