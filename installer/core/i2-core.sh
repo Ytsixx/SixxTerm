@@ -20,7 +20,7 @@ else
 fi
 
 # ── Instalar pacotes essenciais ─────────────────────────────────
-PACOTES=(bash coreutils curl git zsh termux-tools unzip)
+PACOTES=(bash coreutils curl git zsh termux-tools unzip jp)
 FALTANDO=()
 
 info "Verificando pacotes essenciais..."

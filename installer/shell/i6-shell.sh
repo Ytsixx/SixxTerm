@@ -38,6 +38,9 @@ if [ ! -z "\${ZSH_VERSION-}" ]; then
         [ -d "\$PLUGINS_DIR/\$plugin" ] && source "\$PLUGINS_DIR/\$plugin/\$plugin.zsh" 2>/dev/null || true
     done
 
+    # ── JSON Formatter ───────────────────────────────────────────
+    [ -f "\$HOME/SixxTerm/lib/json_format.sh" ] && source "\$HOME/SixxTerm/lib/json_format.sh"
+
     # ── Aliases gerais ───────────────────────────────────────────
     alias c='clear'
     alias q='exit'
@@ -201,13 +204,13 @@ if [ ! -z "\${ZSH_VERSION-}" ]; then
 
     # ── Aliases personalizados ───────────────────────────────────
     # Adicione os seus aliases aqui
-    alias 'sixxterm'='bash $HOME/SixxTerm/bin/sixxterm.sh'
+    alias sixxterm='bash \$HOME/SixxTerm/bin/sixxterm.sh'
 
     PROMPT='%F{white}   ❯_%f '
 fi
 
 # ── Banner ───────────────────────────────────────────────────────
-BANNER="$BASE/themes/banner.sh"
+BANNER="\$HOME/SixxTerm/themes/banner.sh"
 [ -x "\$BANNER" ] && source "\$BANNER"
 EOF
 success "Zsh configurado!"

@@ -4,7 +4,6 @@
 *.tmp
 
 # Plugins (instalados em runtime)
-plugins/
 
 # Fontes baixadas (usar do repo)
 fonts/*.zip

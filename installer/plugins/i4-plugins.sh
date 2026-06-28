@@ -10,7 +10,7 @@ warn()    { printf "\e[1;33m[!]\e[0m %s\n" "$1"; }
 success() { printf "\e[1;32m[✓]\e[0m %s\n" "$1"; }
 erro()    { printf "\e[1;31m[✗]\e[0m %s\n" "$1"; }
 
-# ── Verificar Git ───────────────────────────────────────────────
+# ── Verificar Git ────────────────────────────────────────────────
 if ! command -v git >/dev/null 2>&1; then
     warn "Git não encontrado, instalando..."
     pkg install -y git >/dev/null 2>&1 && \
@@ -18,7 +18,7 @@ if ! command -v git >/dev/null 2>&1; then
         { erro "Falha ao instalar Git."; exit 1; }
 fi
 
-# ── Plugins ─────────────────────────────────────────────────────
+# ── Plugins ──────────────────────────────────────────────────────
 declare -A PLUGINS=(
     [zsh-autosuggestions]="https://github.com/zsh-users/zsh-autosuggestions.git"
     [zsh-syntax-highlighting]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
@@ -27,15 +27,28 @@ declare -A PLUGINS=(
     [zsh-fzf-history-search]="https://github.com/joshskidmore/zsh-fzf-history-search.git"
 )
 
+# Ficheiro principal de cada plugin
+declare -A PLUGIN_FILE=(
+    [zsh-autosuggestions]="zsh-autosuggestions.zsh"
+    [zsh-syntax-highlighting]="zsh-syntax-highlighting.zsh"
+    [zsh-autocomplete]="zsh-autocomplete.plugin.zsh"
+    [bgnotify]="bgnotify.plugin.zsh"
+    [zsh-fzf-history-search]="zsh-fzf-history-search.plugin.zsh"
+)
+
 mkdir -p "$PLUGINS_DIR"
 
-info "Instalando plugins do Zsh..."
+info "Verificando plugins do Zsh..."
 
 for plugin in "${!PLUGINS[@]}"; do
     dest="$PLUGINS_DIR/$plugin"
-    if [ -d "$dest" ]; then
-        success "Plugin $plugin já instalado, ignorando...."
+    ficheiro="$dest/${PLUGIN_FILE[$plugin]}"
+
+    if [ -d "$dest" ] && [ -f "$ficheiro" ]; then
+        success "Plugin $plugin já instalado!"
     else
+        # Pasta existe mas ficheiro principal não — reinstala
+        [ -d "$dest" ] && rm -rf "$dest"
         progress_bar "Clonando $plugin" 2
         if git clone --depth=1 "${PLUGINS[$plugin]}" "$dest" >/dev/null 2>&1; then
             success "Plugin $plugin instalado!"
@@ -45,4 +58,4 @@ for plugin in "${!PLUGINS[@]}"; do
     fi
 done
 
-success "Plugins do Zsh instalados com sucesso!"
+success "Plugins do Zsh prontos!"
